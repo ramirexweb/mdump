@@ -27,16 +27,45 @@ console = Console()
 class MySQLBackupTool:
     """Main class for handling MySQL backups"""
     
-    def __init__(self, host, user, password, port=3306, output_dir="./backups"):
+    def __init__(self, host, user, password, port=3306, output_path=None):
         self.host = host
         self.user = user
         self.password = password
         self.port = port
-        self.output_dir = Path(output_dir)
         self.connection = None
+        self.output_path = output_path
+        self.output_dir = None
+        self.custom_filename = None
+        
+        # Setup output path
+        self._setup_output_path()
+    
+    def _setup_output_path(self):
+        """Setup output path - can be directory or specific filename"""
+        if self.output_path is None:
+            # Default: create timestamped directory in current location
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.output_dir = Path(f"./mysql_backup_{timestamp}")
+            self.custom_filename = None
+        else:
+            output_path = Path(self.output_path)
+            
+            # Check if it's meant to be a specific file
+            if output_path.suffix in ['.zip', '.tar', '.tar.gz']:
+                # User specified a specific filename
+                self.output_dir = output_path.parent
+                self.custom_filename = output_path.name
+            else:
+                # User specified a directory
+                self.output_dir = output_path
+                self.custom_filename = None
         
         # Create output directory if it doesn't exist
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        
+        console.print(f"[dim]Output directory: {self.output_dir}[/dim]")
+        if self.custom_filename:
+            console.print(f"[dim]Custom filename: {self.custom_filename}[/dim]")
     
     def connect(self):
         """Establishes MySQL connection"""
@@ -252,7 +281,15 @@ class MySQLBackupTool:
     
     def compress_backups(self, backup_files, timestamp):
         """Compresses all backup files into a ZIP"""
-        zip_file = self.output_dir / f"backup_{timestamp}.zip"
+        if self.custom_filename:
+            # User specified exact filename
+            zip_file = self.output_dir / self.custom_filename
+            # Ensure it has .zip extension
+            if not zip_file.suffix == '.zip':
+                zip_file = zip_file.with_suffix('.zip')
+        else:
+            # Generate default filename
+            zip_file = self.output_dir / f"mysql_backup_{timestamp}.zip"
         
         try:
             with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zf:
@@ -281,16 +318,23 @@ class MySQLBackupTool:
 @click.option('-u', '--user', required=True, help='MySQL username')
 @click.option('-p', '--password', is_flag=True, help='Prompt for password')
 @click.option('-P', '--port', default=3306, help='MySQL server port')
-@click.option('-o', '--output', default='./backups', help='Output directory')
+@click.option('-o', '--output', default=None, help='Output directory or filename (default: ./mysql_backup_TIMESTAMP/)')
 def main(host, user, password, port, output):
     """
     MySQL Backup Tool - Tool for creating MySQL database backups
     
+    OUTPUT OPTIONS:
+    - No -o flag: Creates ./mysql_backup_YYYYMMDD_HHMMSS/ directory
+    - -o /path/to/dir: Uses specified directory
+    - -o /path/to/backup.zip: Creates backup with exact filename
+    - -o backup.zip: Creates backup.zip in current directory
+    
     Usage examples:
     
     ./mdump.sh -h localhost -u root -p
-    
-    ./mdump.sh -h 192.168.1.100 -P 3307 -u admin -p -o /path/to/backups
+    ./mdump.sh -h localhost -u root -p -o /backups/
+    ./mdump.sh -h localhost -u root -p -o /backups/myapp_backup.zip
+    ./mdump.sh -h 192.168.1.100 -P 3307 -u admin -p -o server_backup.zip
     """
     
     # Banner

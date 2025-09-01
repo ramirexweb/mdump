@@ -66,23 +66,49 @@ python mdump.py -h localhost -u root -p
 - `-u, --user`: MySQL username (required)
 - `-p, --password`: Prompt for password interactively
 - `-P, --port`: MySQL server port (default: 3306)
-- `-o, --output`: Output directory for backups (default: ./backups)
+- `-o, --output`: Output directory or filename (see OUTPUT OPTIONS below)
 - `--help`: Show complete help
+
+### OUTPUT OPTIONS:
+
+**Default behavior (no -o flag):**
+```bash
+./mdump.sh -h localhost -u root -p
+# Creates: ./mysql_backup_20250901_143022/mysql_backup_20250901_143022.zip
+```
+
+**Specify directory:**
+```bash
+./mdump.sh -h localhost -u root -p -o /path/to/backups/
+# Creates: /path/to/backups/mysql_backup_20250901_143022.zip
+```
+
+**Specify exact filename:**
+```bash
+./mdump.sh -h localhost -u root -p -o myapp_backup.zip
+# Creates: ./myapp_backup.zip
+
+./mdump.sh -h localhost -u root -p -o /backups/production_backup.zip
+# Creates: /backups/production_backup.zip
+```
 
 ### Examples:
 
 ```bash
-# Local connection with root user (using wrapper)
+# Default: Creates timestamped directory with backup
 ./mdump.sh -h localhost -u root -p
 
-# Remote connection with specific port
-./mdump.sh -h 192.168.1.100 -P 3307 -u admin -p
-
 # Specify output directory
-./mdump.sh -h localhost -u root -p -o /path/to/backups
+./mdump.sh -h localhost -u root -p -o /path/to/backups/
+
+# Specify exact backup filename
+./mdump.sh -h localhost -u root -p -o myapp_backup.zip
+
+# Remote connection with custom filename
+./mdump.sh -h 192.168.1.100 -P 3307 -u admin -p -o server_backup.zip
 
 # Using virtual environment Python directly
-./.venv/bin/python mdump.py -h localhost -u root -p
+./.venv/bin/python mdump.py -h localhost -u root -p -o production.zip
 ```
 
 ## Workflow
@@ -96,9 +122,18 @@ python mdump.py -h localhost -u root -p
 
 ## Generated files
 
-Backups are saved with the format:
+**Default behavior:**
 ```
-backup_YYYYMMDD_HHMMSS.zip
+mysql_backup_YYYYMMDD_HHMMSS/
+└── mysql_backup_YYYYMMDD_HHMMSS.zip
+    ├── database1_YYYYMMDD_HHMMSS.sql
+    ├── database2_YYYYMMDD_HHMMSS.sql
+    └── ...
+```
+
+**With custom filename:**
+```
+your_specified_name.zip
 ├── database1_YYYYMMDD_HHMMSS.sql
 ├── database2_YYYYMMDD_HHMMSS.sql
 └── ...

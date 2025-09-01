@@ -18,7 +18,7 @@ def automated_backup():
         'user': 'root', 
         'password': 'your_password_here',  # DON'T hardcode passwords in production!
         'port': 3306,
-        'output_dir': './automated_backups'
+        'output_path': './automated_backups/'  # Can be directory or specific filename
     }
     
     # Specific databases to backup
@@ -32,7 +32,7 @@ def automated_backup():
         user=config['user'],
         password=config['password'],
         port=config['port'],
-        output_dir=config['output_dir']
+        output_path=config['output_path']  # Note: changed from output_dir
     )
     
     try:
@@ -85,7 +85,7 @@ def scheduled_backup_example():
         'user': os.getenv('MYSQL_USER', 'root'),
         'password': os.getenv('MYSQL_PASSWORD', ''),
         'port': int(os.getenv('MYSQL_PORT', '3306')),
-        'output_dir': os.getenv('BACKUP_DIR', './backups')
+        'output_path': os.getenv('BACKUP_PATH', './backups/')  # Can be dir or filename
     }
     
     # The rest of the code would be the same...
