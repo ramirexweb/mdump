@@ -8,7 +8,7 @@ A powerful and user-friendly command-line tool for creating MySQL database backu
 - **Intelligent database discovery** - Automatically lists and filters user databases
 - **Interactive selection** - Choose databases with flexible selection syntax
 - **Smart output options** - Automatic timestamping, custom directories, or specific filenames
-- **Professional compression** - Individual SQL files compressed into organized ZIP archives
+- **Professional compression** - Individual SQL files compressed into organized tar.gz archives
 - **Production-ready** - Includes stored procedures, triggers, events, and proper transaction handling
 - **Beautiful interface** - Color-coded output with progress indicators and formatted tables
 - **Cross-platform** - Works on Linux, macOS, and Windows
@@ -66,22 +66,22 @@ deactivate
 **Default behavior (no -o flag):**
 ```bash
 ./mdump.sh -h localhost -u root -p
-# Creates: ./mysql_backup_20250901_143022/mysql_backup_20250901_143022.zip
+# Creates: ./mysql_backup_20250901_143022/mysql_backup_20250901_143022.tar.gz
 ```
 
 **Specify directory:**
 ```bash
 ./mdump.sh -h localhost -u root -p -o /path/to/backups/
-# Creates: /path/to/backups/mysql_backup_20250901_143022.zip
+# Creates: /path/to/backups/mysql_backup_20250901_143022.tar.gz
 ```
 
 **Specify exact filename:**
 ```bash
-./mdump.sh -h localhost -u root -p -o myapp_backup.zip
-# Creates: ./myapp_backup.zip
+./mdump.sh -h localhost -u root -p -o myapp_backup.tar.gz
+# Creates: ./myapp_backup.tar.gz
 
-./mdump.sh -h localhost -u root -p -o /backups/production_backup.zip
-# Creates: /backups/production_backup.zip
+./mdump.sh -h localhost -u root -p -o /backups/production_backup.tar.gz
+# Creates: /backups/production_backup.tar.gz
 ```
 
 ### Examples:
@@ -94,13 +94,13 @@ deactivate
 ./mdump.sh -h localhost -u root -p -o /path/to/backups/
 
 # Specify exact backup filename
-./mdump.sh -h localhost -u root -p -o myapp_backup.zip
+./mdump.sh -h localhost -u root -p -o myapp_backup.tar.gz
 
 # Remote connection with custom filename
-./mdump.sh -h 192.168.1.100 -P 3307 -u admin -p -o server_backup.zip
+./mdump.sh -h 192.168.1.100 -P 3307 -u admin -p -o server_backup.tar.gz
 
 # Using virtual environment Python directly
-./.venv/bin/python mdump.py -h localhost -u root -p -o production.zip
+./.venv/bin/python mdump.py -h localhost -u root -p -o production.tar.gz
 ```
 
 ## 🗂️ Database Selection
@@ -118,17 +118,17 @@ The tool provides flexible database selection options:
 **Default behavior:**
 ```
 mysql_backup_YYYYMMDD_HHMMSS/
-└── mysql_backup_YYYYMMDD_HHMMSS.zip
-    ├── database1_YYYYMMDD_HHMMSS.sql
-    ├── database2_YYYYMMDD_HHMMSS.sql
+└── mysql_backup_YYYYMMDD_HHMMSS.tar.gz
+    ├── database1.sql
+    ├── database2.sql
     └── ...
 ```
 
 **With custom filename:**
 ```
-your_specified_name.zip
-├── database1_YYYYMMDD_HHMMSS.sql
-├── database2_YYYYMMDD_HHMMSS.sql
+your_specified_name.tar.gz
+├── database1.sql
+├── database2.sql
 └── ...
 ```
 
@@ -138,7 +138,7 @@ your_specified_name.zip
 2. **Discover**: Lists all available user databases (filters system databases)
 3. **Select**: Interactive selection with flexible syntax
 4. **Backup**: Creates individual SQL dumps with full schema and data
-5. **Compress**: Combines all files into organized ZIP archive
+5. **Compress**: Combines all files into organized tar.gz archive
 6. **Cleanup**: Removes temporary SQL files automatically
 
 ## ⚙️ Advanced Features
@@ -149,7 +149,7 @@ Use the included `automated_backup.py` template for scheduled backups:
 
 ```python
 # Example cron job
-0 2 * * * cd /path/to/mdump && ./mdump.sh -h localhost -u backup_user -p -o /backups/$(date +\%Y\%m\%d)_backup.zip
+0 2 * * * cd /path/to/mdump && ./mdump.sh -h localhost -u backup_user -p -o /backups/$(date +\%Y\%m\%d)_backup.tar.gz
 ```
 
 ### Global Alias Installation

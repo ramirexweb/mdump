@@ -6,7 +6,7 @@ A command-line tool for creating MySQL database backups
 
 import os
 import sys
-import zipfile
+import tarfile
 import subprocess
 import getpass
 from datetime import datetime
@@ -227,7 +227,8 @@ class MySQLBackupTool:
             for db_name in databases:
                 task = progress.add_task(f"Backing up {db_name}...", total=None)
                 
-                sql_file = self.output_dir / f"{db_name}_{timestamp}.sql"
+                # SQL files now use only the database name without timestamp
+                sql_file = self.output_dir / f"{db_name}.sql"
                 
                 if self.dump_database(db_name, sql_file):
                     backup_files.append(sql_file)
@@ -280,27 +281,30 @@ class MySQLBackupTool:
             return False
     
     def compress_backups(self, backup_files, timestamp):
-        """Compresses all backup files into a ZIP"""
+        """Compresses all backup files into a tar.gz archive"""
         if self.custom_filename:
             # User specified exact filename
-            zip_file = self.output_dir / self.custom_filename
-            # Ensure it has .zip extension
-            if not zip_file.suffix == '.zip':
-                zip_file = zip_file.with_suffix('.zip')
+            tar_file = self.output_dir / self.custom_filename
+            # Ensure it has .tar.gz extension
+            if not str(tar_file).endswith('.tar.gz'):
+                if tar_file.suffix in ['.zip', '.tar']:
+                    tar_file = tar_file.with_suffix('.tar.gz')
+                else:
+                    tar_file = tar_file.with_suffix(tar_file.suffix + '.tar.gz')
         else:
             # Generate default filename
-            zip_file = self.output_dir / f"mysql_backup_{timestamp}.zip"
+            tar_file = self.output_dir / f"mysql_backup_{timestamp}.tar.gz"
         
         try:
-            with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+            with tarfile.open(tar_file, 'w:gz') as tf:
                 for sql_file in backup_files:
-                    zf.write(sql_file, sql_file.name)
+                    tf.add(sql_file, arcname=sql_file.name)
             
             # Clean up individual SQL files
             for sql_file in backup_files:
                 sql_file.unlink()
             
-            return zip_file
+            return tar_file
             
         except Exception as e:
             console.print(f"[red]Error compressing files: {e}[/red]")
