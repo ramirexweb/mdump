@@ -39,7 +39,11 @@ venv.bak/
 # Archivos de backup (ejemplos)
 backups/
 *.zip
+*.tar.gz
 *.sql
+
+# Carpetas de backup generadas por mdump
+mysql_*/
 
 # Logs
 *.log
