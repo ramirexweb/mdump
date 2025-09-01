@@ -1,46 +1,46 @@
 #!/bin/bash
 
-# Script de instalación para mdump
-# Ejecuta: bash install.sh
+# Installation script for mdump
+# Run: bash install.sh
 
 set -e
 
-echo "=== Instalador de MySQL Backup Tool (mdump) ==="
+echo "=== MySQL Backup Tool (mdump) Installer ==="
 echo ""
 
-# Verificar si Python está instalado
+# Check if Python is installed
 if ! command -v python3 &> /dev/null; then
-    echo "❌ Python3 no está instalado"
-    echo "Por favor instala Python3 primero"
+    echo "❌ Python3 is not installed"
+    echo "Please install Python3 first"
     exit 1
 fi
 
-echo "✅ Python3 encontrado: $(python3 --version)"
+echo "✅ Python3 found: $(python3 --version)"
 
-# Crear entorno virtual si no existe
+# Create virtual environment if it doesn't exist
 if [ ! -d ".venv" ]; then
-    echo "📦 Creando entorno virtual..."
+    echo "📦 Creating virtual environment..."
     python3 -m venv .venv
 else
-    echo "✅ Entorno virtual ya existe"
+    echo "✅ Virtual environment already exists"
 fi
 
-# Activar entorno virtual e instalar dependencias
-echo "📥 Instalando dependencias..."
+# Activate virtual environment and install dependencies
+echo "📥 Installing dependencies..."
 source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# Verificar instalación
+# Verify installation
 echo ""
-echo "🔍 Verificando instalación..."
+echo "🔍 Verifying installation..."
 python setup_check.py
 
 echo ""
-echo "🎉 ¡Instalación completada!"
+echo "🎉 Installation completed!"
 echo ""
-echo "Para usar mdump:"
-echo "1. Asegúrate de tener un servidor MySQL funcionando"
-echo "2. Ejecuta: python mdump.py -h localhost -u tu_usuario -p"
+echo "To use mdump:"
+echo "1. Make sure you have a working MySQL server"
+echo "2. Run: ./mdump.sh -h localhost -u your_username -p"
 echo ""
-echo "Para más información consulta README.md"
+echo "For more information check README.md"

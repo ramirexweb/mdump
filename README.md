@@ -1,80 +1,102 @@
 # MySQL Backup Tool (mdump)
 
-Una herramienta de línea de comandos para hacer backups de bases de datos MySQL de forma simple y eficiente.
+A command-line tool for creating MySQL database backups in a simple and efficient way.
 
-## Características
+## Features
 
-- Conexión a servidores MySQL con parámetros familiares (como mysql cli)
-- Lista automática de bases de datos disponibles
-- Selección interactiva de las bases de datos a respaldar
-- Generación de archivos SQL individuales por base de datos
-- Compresión automática en un archivo ZIP
-- Interfaz amigable con colores y tablas
+- Connect to MySQL servers with familiar parameters (like mysql cli)
+- Automatic listing of available databases
+- Interactive selection of databases to backup
+- Individual SQL file generation per database
+- Automatic compression into a single ZIP file
+- User-friendly interface with colors and tables
 
-## Instalación
+## Installation
 
-1. Clona o descarga este proyecto
-2. Instala las dependencias:
+1. Clone or download this project
+2. Install dependencies:
+```bash
+bash install.sh
+```
+
+Or manually:
 ```bash
 pip install -r requirements.txt
 ```
 
-## Uso
+## Quick Start
 
-### Formas de ejecutar mdump:
+1. Run the setup verification:
+```bash
+python setup_check.py
+```
 
-**Opción 1: Usando el wrapper script (más fácil)**
+2. See usage examples:
+```bash
+./examples.sh
+```
+
+3. Use mdump:
 ```bash
 ./mdump.sh -h localhost -u root -p
 ```
 
-**Opción 2: Usando el Python del entorno virtual directamente**
+## Usage
+
+### Ways to run mdump:
+
+**Option 1: Using the wrapper script (EASIEST)**
+```bash
+./mdump.sh -h localhost -u root -p
+```
+
+**Option 2: Using virtual environment Python directly**
 ```bash
 ./.venv/bin/python mdump.py -h localhost -u root -p
 ```
 
-**Opción 3: Activando el entorno virtual primero**
+**Option 3: Activating virtual environment first**
 ```bash
 source .venv/bin/activate
 python mdump.py -h localhost -u root -p
 ```
 
-### Parámetros disponibles:
-- `-h, --host`: Host del servidor MySQL (default: localhost)
-- `-u, --user`: Usuario de MySQL (requerido)
-- `-p, --password`: Solicitar contraseña de forma interactiva
-- `-P, --port`: Puerto del servidor MySQL (default: 3306)
-- `-o, --output`: Directorio de salida para los backups (default: ./backups)
-- `--help`: Muestra ayuda completa
+### Available parameters:
+- `-h, --host`: MySQL server host (default: localhost)
+- `-u, --user`: MySQL username (required)
+- `-p, --password`: Prompt for password interactively
+- `-P, --port`: MySQL server port (default: 3306)
+- `-o, --output`: Output directory for backups (default: ./backups)
+- `--help`: Show complete help
 
-### Ejemplos:
+### Examples:
 
 ```bash
-# Conexión local con usuario root (usando wrapper)
+# Local connection with root user (using wrapper)
 ./mdump.sh -h localhost -u root -p
 
-# Conexión remota con puerto específico
+# Remote connection with specific port
 ./mdump.sh -h 192.168.1.100 -P 3307 -u admin -p
 
-# Especificar directorio de salida
+# Specify output directory
 ./mdump.sh -h localhost -u root -p -o /path/to/backups
 
-# Usando el Python del entorno virtual directamente
+# Using virtual environment Python directly
 ./.venv/bin/python mdump.py -h localhost -u root -p
 ```
 
-## Flujo de trabajo
+## Workflow
 
-1. La herramienta se conecta al servidor MySQL
-2. Lista todas las bases de datos disponibles
-3. Permite seleccionar cuáles bases de datos respaldar
-4. Genera un archivo .sql por cada base de datos seleccionada
-5. Comprime todos los archivos en un solo ZIP con timestamp
-6. Limpia los archivos temporales
+1. The tool connects to the MySQL server
+2. Lists all available databases
+3. Allows you to select which databases to backup
+4. Generates a .sql file for each selected database
+5. Compresses all files into a single ZIP with timestamp
+6. Cleans up temporary files
 
-## Archivos generados
+## Generated files
 
-Los backups se guardan con el formato:
+Backups are saved with the format:
 ```
 backup_YYYYMMDD_HHMMSS.zip
 ├── database1_YYYYMMDD_HHMMSS.sql

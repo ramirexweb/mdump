@@ -1,72 +1,72 @@
 #!/bin/bash
 
-# Script para crear un alias global de mdump
-# Esto permite ejecutar 'mdump' desde cualquier directorio
+# Script to create a global alias for mdump
+# This allows running 'mdump' from any directory
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MDUMP_WRAPPER="$SCRIPT_DIR/mdump.sh"
 
-echo "=== Instalador de Alias Global para mdump ==="
+echo "=== Global Alias Installer for mdump ==="
 echo ""
 
-# Verificar que el wrapper existe
+# Check if wrapper exists
 if [ ! -f "$MDUMP_WRAPPER" ]; then
-    echo "❌ Error: mdump.sh no encontrado en $SCRIPT_DIR"
+    echo "❌ Error: mdump.sh not found in $SCRIPT_DIR"
     exit 1
 fi
 
-# Opciones para crear el alias
-echo "Selecciona una opción para crear el alias global:"
+# Options to create alias
+echo "Select an option to create the global alias:"
 echo ""
-echo "1. Agregar alias al .zshrc (recomendado para zsh)"
-echo "2. Crear enlace simbólico en /usr/local/bin (requiere sudo)"
-echo "3. Solo mostrar comando para agregar manualmente"
-echo "4. Salir"
+echo "1. Add alias to .zshrc (recommended for zsh)"
+echo "2. Create symbolic link in /usr/local/bin (requires sudo)"
+echo "3. Just show command to add manually"
+echo "4. Exit"
 echo ""
 
-read -p "Opción (1-4): " choice
+read -p "Option (1-4): " choice
 
 case $choice in
     1)
         echo ""
-        echo "Agregando alias a ~/.zshrc..."
+        echo "Adding alias to ~/.zshrc..."
         echo "alias mdump='$MDUMP_WRAPPER'" >> ~/.zshrc
-        echo "✅ Alias agregado a ~/.zshrc"
+        echo "✅ Alias added to ~/.zshrc"
         echo ""
-        echo "Para usar inmediatamente:"
+        echo "To use immediately:"
         echo "source ~/.zshrc"
         echo ""
-        echo "Después podrás usar: mdump -h localhost -u root -p"
+        echo "Then you can use: mdump -h localhost -u root -p"
         ;;
     2)
         echo ""
-        echo "Creando enlace simbólico en /usr/local/bin..."
+        echo "Creating symbolic link in /usr/local/bin..."
         sudo ln -sf "$MDUMP_WRAPPER" /usr/local/bin/mdump
         if [ $? -eq 0 ]; then
-            echo "✅ Enlace simbólico creado"
+            echo "✅ Symbolic link created"
             echo ""
-            echo "Ahora puedes usar: mdump -h localhost -u root -p"
+            echo "Now you can use: mdump -h localhost -u root -p"
         else
-            echo "❌ Error creando el enlace simbólico"
+            echo "❌ Error creating symbolic link"
         fi
         ;;
     3)
         echo ""
-        echo "Para agregar el alias manualmente, ejecuta:"
+        echo "To add the alias manually, run:"
         echo ""
         echo "echo \"alias mdump='$MDUMP_WRAPPER'\" >> ~/.zshrc"
         echo "source ~/.zshrc"
         echo ""
-        echo "O para bash:"
+        echo "Or for bash:"
         echo "echo \"alias mdump='$MDUMP_WRAPPER'\" >> ~/.bashrc"
         echo "source ~/.bashrc"
         ;;
     4)
-        echo "Saliendo..."
+        echo "Exiting..."
         exit 0
         ;;
     *)
-        echo "❌ Opción inválida"
+        echo "❌ Invalid option"
         exit 1
         ;;
 esac
