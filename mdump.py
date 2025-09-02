@@ -9,6 +9,7 @@ import sys
 import tarfile
 import subprocess
 import getpass
+import shutil
 from datetime import datetime
 from pathlib import Path
 import click
@@ -317,28 +318,246 @@ class MySQLBackupTool:
             console.print("[dim]Connection closed[/dim]")
 
 
-@click.command()
+class MySQLRestoreTool:
+    """Class for handling MySQL backup restoration from tar.gz files"""
+    
+    def __init__(self, host, user, password, port=3306):
+        self.host = host
+        self.user = user
+        self.password = password
+        self.port = port
+        self.connection = None
+    
+    def connect(self):
+        """Establishes connection to MySQL server"""
+        try:
+            console.print(f"[cyan]Connecting to MySQL server at {self.host}:{self.port}...[/cyan]")
+            self.connection = mysql.connector.connect(
+                host=self.host,
+                port=self.port,
+                user=self.user,
+                password=self.password
+            )
+            
+            if self.connection.is_connected():
+                console.print("[green]✓ Connected to MySQL server[/green]")
+                return True
+            else:
+                console.print("[red]✗ Failed to connect[/red]")
+                return False
+                
+        except Error as e:
+            console.print(f"[red]Connection error: {e}[/red]")
+            return False
+    
+    def extract_backup(self, tar_file_path):
+        """Extract tar.gz backup file and return list of SQL files"""
+        tar_path = Path(tar_file_path)
+        if not tar_path.exists():
+            console.print(f"[red]Error: Backup file {tar_file_path} not found[/red]")
+            return None
+        
+        # Create extraction directory
+        extract_dir = tar_path.parent / f"restore_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        extract_dir.mkdir(exist_ok=True)
+        
+        try:
+            console.print(f"[cyan]Extracting backup file...[/cyan]")
+            with tarfile.open(tar_path, 'r:gz') as tf:
+                tf.extractall(extract_dir)
+            
+            # Find all SQL files
+            sql_files = list(extract_dir.glob("*.sql"))
+            if not sql_files:
+                console.print("[red]No SQL files found in backup[/red]")
+                return None
+            
+            console.print(f"[green]✓ Extracted {len(sql_files)} SQL files[/green]")
+            return sql_files
+            
+        except Exception as e:
+            console.print(f"[red]Error extracting backup: {e}[/red]")
+            return None
+    
+    def database_exists(self, database_name):
+        """Check if database exists"""
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute("SHOW DATABASES")
+            databases = [db[0] for db in cursor.fetchall()]
+            cursor.close()
+            return database_name in databases
+        except Error as e:
+            console.print(f"[red]Error checking database: {e}[/red]")
+            return False
+    
+    def create_database(self, database_name):
+        """Create a new database"""
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute(f"CREATE DATABASE `{database_name}`")
+            cursor.close()
+            console.print(f"[green]✓ Created database: {database_name}[/green]")
+            return True
+        except Error as e:
+            console.print(f"[red]Error creating database {database_name}: {e}[/red]")
+            return False
+    
+    def drop_database(self, database_name):
+        """Drop an existing database"""
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute(f"DROP DATABASE `{database_name}`")
+            cursor.close()
+            console.print(f"[yellow]⚠ Dropped database: {database_name}[/yellow]")
+            return True
+        except Error as e:
+            console.print(f"[red]Error dropping database {database_name}: {e}[/red]")
+            return False
+    
+    def restore_database(self, sql_file):
+        """Restore database from SQL file using mysql command"""
+        database_name = sql_file.stem  # Get filename without extension
+        
+        try:
+            # Build mysql command
+            mysql_cmd = [
+                'mysql',
+                f'--host={self.host}',
+                f'--port={self.port}',
+                f'--user={self.user}',
+                f'--password={self.password}',
+                database_name
+            ]
+            
+            console.print(f"[cyan]Restoring {database_name} from {sql_file.name}...[/cyan]")
+            
+            with open(sql_file, 'r', encoding='utf-8') as f:
+                result = subprocess.run(
+                    mysql_cmd,
+                    stdin=f,
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+            
+            console.print(f"[green]✓ Successfully restored database: {database_name}[/green]")
+            return True
+            
+        except subprocess.CalledProcessError as e:
+            console.print(f"[red]Error restoring {database_name}: {e.stderr}[/red]")
+            return False
+        except Exception as e:
+            console.print(f"[red]Unexpected error restoring {database_name}: {e}[/red]")
+            return False
+    
+    def restore_backup(self, tar_file_path):
+        """Main method to restore backup from tar.gz file"""
+        if not self.connect():
+            return False
+        
+        # Extract backup files
+        sql_files = self.extract_backup(tar_file_path)
+        if not sql_files:
+            return False
+        
+        # Show found databases
+        console.print(f"\n[bold blue]Found {len(sql_files)} database backup(s):[/bold blue]")
+        table = Table(show_header=True)
+        table.add_column("Database Name", style="cyan")
+        table.add_column("File Size", style="green")
+        table.add_column("Status", style="yellow")
+        
+        for sql_file in sql_files:
+            database_name = sql_file.stem
+            file_size = sql_file.stat().st_size / 1024  # KB
+            exists = self.database_exists(database_name)
+            status = "EXISTS" if exists else "NEW"
+            table.add_row(database_name, f"{file_size:.1f} KB", status)
+        
+        console.print(table)
+        
+        # Confirm restore
+        if not Confirm.ask("\n[bold yellow]Do you want to proceed with the restore?[/bold yellow]"):
+            console.print("[yellow]Restore cancelled[/yellow]")
+            return False
+        
+        # Process each database
+        success_count = 0
+        for sql_file in sql_files:
+            database_name = sql_file.stem
+            
+            if self.database_exists(database_name):
+                # Database exists, ask what to do
+                console.print(f"\n[yellow]Database '{database_name}' already exists[/yellow]")
+                action = Prompt.ask(
+                    "What would you like to do?",
+                    choices=["overwrite", "skip", "cancel"],
+                    default="skip"
+                )
+                
+                if action == "cancel":
+                    console.print("[yellow]Restore cancelled[/yellow]")
+                    break
+                elif action == "skip":
+                    console.print(f"[yellow]Skipped: {database_name}[/yellow]")
+                    continue
+                elif action == "overwrite":
+                    if not self.drop_database(database_name):
+                        continue
+                    if not self.create_database(database_name):
+                        continue
+            else:
+                # Create new database
+                if not self.create_database(database_name):
+                    continue
+            
+            # Restore database
+            if self.restore_database(sql_file):
+                success_count += 1
+        
+        # Cleanup extraction directory
+        import shutil
+        shutil.rmtree(sql_files[0].parent, ignore_errors=True)
+        
+        console.print(f"\n[bold green]✅ Restore completed: {success_count}/{len(sql_files)} databases restored[/bold green]")
+        return success_count > 0
+    
+    def close_connection(self):
+        """Closes MySQL connection"""
+        if self.connection and self.connection.is_connected():
+            self.connection.close()
+            console.print("[dim]Connection closed[/dim]")
+
+
+@click.group()
+def cli():
+    """MySQL Database Backup and Restore Tool (mdump)"""
+    pass
+
+
+@cli.command()
 @click.option('-h', '--host', default='localhost', help='MySQL server host')
 @click.option('-u', '--user', required=True, help='MySQL username')
 @click.option('-p', '--password', is_flag=True, help='Prompt for password')
 @click.option('-P', '--port', default=3306, help='MySQL server port')
 @click.option('-o', '--output', default=None, help='Output directory or filename (default: ./mysql_backup_TIMESTAMP/)')
-def main(host, user, password, port, output):
+def backup(host, user, password, port, output):
     """
     MySQL Backup Tool - Tool for creating MySQL database backups
     
     OUTPUT OPTIONS:
     - No -o flag: Creates ./mysql_backup_YYYYMMDD_HHMMSS/ directory
     - -o /path/to/dir: Uses specified directory
-    - -o /path/to/backup.zip: Creates backup with exact filename
-    - -o backup.zip: Creates backup.zip in current directory
+    - -o /path/to/backup.tar.gz: Creates backup with exact filename
+    - -o backup.tar.gz: Creates backup.tar.gz in current directory
     
     Usage examples:
     
     ./mdump.sh -h localhost -u root -p
     ./mdump.sh -h localhost -u root -p -o /backups/
-    ./mdump.sh -h localhost -u root -p -o /backups/myapp_backup.zip
-    ./mdump.sh -h 192.168.1.100 -P 3307 -u admin -p -o server_backup.zip
+    ./mdump.sh -h localhost -u root -p -o /backups/myapp_backup.tar.gz
+    ./mdump.sh -h 192.168.1.100 -P 3307 -u admin -p -o server_backup.tar.gz
     """
     
     # Banner
@@ -401,5 +620,62 @@ def main(host, user, password, port, output):
         backup_tool.close_connection()
 
 
+@cli.command()
+@click.option('-h', '--host', default='localhost', help='MySQL server host')
+@click.option('-u', '--user', required=True, help='MySQL username')
+@click.option('-p', '--password', is_flag=True, help='Prompt for password')
+@click.option('-P', '--port', default=3306, help='MySQL server port')
+@click.option('-f', '--file', required=True, help='Path to tar.gz backup file to restore')
+def restore(host, user, password, port, file):
+    """
+    MySQL Restore Tool - Tool for restoring MySQL databases from tar.gz backups
+    
+    Usage examples:
+    
+    ./mdump.sh restore -h localhost -u root -p -f backup.tar.gz
+    ./mdump.sh restore -h localhost -u root -p -f /backups/mysql_backup_20250901_143022.tar.gz
+    """
+    
+    # Banner
+    console.print(Panel.fit(
+        "[bold green]MySQL Restore Tool (mdump)[/bold green]\n"
+        "[dim]Tool for MySQL database restoration[/dim]",
+        border_style="green"
+    ))
+    
+    # Request password if needed
+    if password:
+        db_password = getpass.getpass(f"Password for {user}@{host}: ")
+    else:
+        console.print("[red]Error: You must specify -p to enter password[/red]")
+        sys.exit(1)
+    
+    # Create restore tool instance
+    restore_tool = MySQLRestoreTool(host, user, db_password, port)
+    
+    try:
+        # Restore backup
+        console.print(f"\n[cyan]Starting restore from {file}...[/cyan]")
+        success = restore_tool.restore_backup(file)
+        
+        if success:
+            console.print(f"\n[green]✓ Restore completed successfully![/green]")
+        else:
+            console.print("[red]✗ Error during restore process[/red]")
+            sys.exit(1)
+    
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Operation cancelled by user[/yellow]")
+        sys.exit(0)
+    except Exception as e:
+        console.print(f"[red]Unexpected error: {e}[/red]")
+        sys.exit(1)
+    finally:
+        restore_tool.close_connection()
+
+
 if __name__ == '__main__':
-    main()
+    # If no command provided, default to backup for backward compatibility
+    if len(sys.argv) == 1 or (len(sys.argv) > 1 and sys.argv[1].startswith('-')):
+        sys.argv.insert(1, 'backup')
+    cli()

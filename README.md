@@ -1,15 +1,26 @@
-# MySQL Backup Tool (mdump)
+# MySQL Backup and Restore Tool (mdump)
 
-A powerful and user-friendly command-line tool for creating MySQL database backups with intelligent output options and professional-grade features.
+A powerful and user-friendly command-line tool for creating and restoring MySQL database backups with intelligent output options and professional-grade features.
 
 ## 🚀 Features
 
+### Backup Features
 - **Familiar MySQL CLI syntax** - Uses the same parameters as standard MySQL tools (`-h`, `-u`, `-p`, `-P`)
 - **Intelligent database discovery** - Automatically lists and filters user databases
 - **Interactive selection** - Choose databases with flexible selection syntax
 - **Smart output options** - Automatic timestamping, custom directories, or specific filenames
 - **Professional compression** - Individual SQL files compressed into organized tar.gz archives
 - **Production-ready** - Includes stored procedures, triggers, events, and proper transaction handling
+
+### Restore Features
+- **Smart tar.gz extraction** - Automatically extracts and processes backup archives
+- **Database analysis** - Shows which databases exist vs. new ones before restoring
+- **Conflict resolution** - Interactive options for existing databases (overwrite/skip/cancel)
+- **Automatic database creation** - Creates new databases as needed during restore
+- **Safe restore process** - Uses native mysql commands for reliable restoration
+- **Progress tracking** - Visual feedback during the entire restore process
+
+### General Features
 - **Beautiful interface** - Color-coded output with progress indicators and formatted tables
 - **Cross-platform** - Works on Linux, macOS, and Windows
 - **Multiple execution methods** - Wrapper scripts, virtual environment, or direct execution
@@ -34,29 +45,49 @@ pip install -r requirements.txt
 
 ## 🎯 Usage
 
-### Ways to run mdump:
+mdump has two main commands: `backup` (default) and `restore`.
+
+### Backup Databases
 
 **Option 1: Using the wrapper script (RECOMMENDED)**
 ```bash
+./mdump.sh backup -h localhost -u root -p
+# or just (backup is default):
 ./mdump.sh -h localhost -u root -p
 ```
 
 **Option 2: Using virtual environment Python directly**
 ```bash
-./.venv/bin/python mdump.py -h localhost -u root -p
+./.venv/bin/python mdump.py backup -h localhost -u root -p
 ```
 
-**Option 3: Activating virtual environment first**
+### Restore Databases
+
+**Using the wrapper script**
 ```bash
-source .venv/bin/activate
-python mdump.py -h localhost -u root -p
-deactivate
+./mdump.sh restore -h localhost -u root -p -f backup.tar.gz
+```
+
+**Using virtual environment Python directly**
+```bash
+./.venv/bin/python mdump.py restore -h localhost -u root -p -f /path/to/backup.tar.gz
 ```
 
 ### Available parameters:
+
+**Backup command:**
 - `-h, --host`: MySQL server host (default: localhost)
 - `-u, --user`: MySQL username (required)
 - `-p, --password`: Prompt for password interactively
+- `-P, --port`: MySQL server port (default: 3306)
+- `-o, --output`: Output directory or filename
+
+**Restore command:**
+- `-h, --host`: MySQL server host (default: localhost)
+- `-u, --user`: MySQL username (required)
+- `-p, --password`: Prompt for password interactively
+- `-P, --port`: MySQL server port (default: 3306)
+- `-f, --file`: Path to tar.gz backup file to restore
 - `-P, --port`: MySQL server port (default: 3306)
 - `-o, --output`: Output directory or filename (see OUTPUT OPTIONS below)
 - `--help`: Show complete help
@@ -84,7 +115,7 @@ deactivate
 # Creates: /backups/production_backup.tar.gz
 ```
 
-### Examples:
+### Backup Examples:
 
 ```bash
 # Default: Creates timestamped directory with backup
@@ -100,8 +131,34 @@ deactivate
 ./mdump.sh -h 192.168.1.100 -P 3307 -u admin -p -o server_backup.tar.gz
 
 # Using virtual environment Python directly
-./.venv/bin/python mdump.py -h localhost -u root -p -o production.tar.gz
+./.venv/bin/python mdump.py backup -h localhost -u root -p -o production.tar.gz
 ```
+
+### Restore Examples:
+
+```bash
+# Restore from backup file in current directory
+./mdump.sh restore -h localhost -u root -p -f mysql_backup_20250901_143022.tar.gz
+
+# Restore from backup file with full path
+./mdump.sh restore -h localhost -u root -p -f /backups/production_backup.tar.gz
+
+# Restore to remote server
+./mdump.sh restore -h 192.168.1.100 -P 3307 -u admin -p -f backup.tar.gz
+
+# Using virtual environment Python directly
+./.venv/bin/python mdump.py restore -h localhost -u root -p -f backup.tar.gz
+```
+
+### Restore Process:
+1. **Analysis**: Tool extracts and analyzes the tar.gz backup
+2. **Database Check**: Shows which databases exist vs. new ones
+3. **Confirmation**: Asks for permission to proceed
+4. **Conflict Resolution**: For existing databases, asks whether to:
+   - `overwrite`: Drops and recreates the database (⚠️ destructive!)
+   - `skip`: Leaves existing database unchanged
+   - `cancel`: Stops the restore process
+5. **Restoration**: Creates new databases and restores from SQL files
 
 ## 🗂️ Database Selection
 
@@ -134,12 +191,22 @@ your_specified_name.tar.gz
 
 ## 🔄 Workflow
 
+### Backup Workflow
 1. **Connect**: Establishes secure connection to MySQL server
 2. **Discover**: Lists all available user databases (filters system databases)
 3. **Select**: Interactive selection with flexible syntax
 4. **Backup**: Creates individual SQL dumps with full schema and data
 5. **Compress**: Combines all files into organized tar.gz archive
 6. **Cleanup**: Removes temporary SQL files automatically
+
+### Restore Workflow
+1. **Connect**: Establishes secure connection to MySQL server
+2. **Extract**: Decompresses tar.gz backup and locates SQL files
+3. **Analyze**: Lists databases in backup and checks for existing conflicts
+4. **Confirm**: Shows restore plan and asks for user confirmation
+5. **Resolve**: Handles existing database conflicts (overwrite/skip/cancel)
+6. **Restore**: Creates databases and executes SQL files using native mysql
+7. **Cleanup**: Removes temporary extraction files
 
 ## ⚙️ Advanced Features
 
@@ -222,11 +289,12 @@ The tool uses optimized `mysqldump` parameters:
 ### Project Structure
 ```
 mdump/
-├── mdump.py                 # Main backup tool
+├── mdump.py                 # Main backup and restore tool
 ├── mdump.sh                 # Wrapper script
 ├── setup_check.py          # Environment verification
 ├── install.sh              # Installation script
-├── examples.sh             # Usage examples
+├── examples.sh             # Backup usage examples
+├── restore_examples.sh     # Restore usage examples
 ├── automated_backup.py     # Automation template
 ├── output_demo.sh          # Output options demo
 ├── install_alias.sh        # Global alias installer
@@ -240,8 +308,11 @@ mdump/
 # Verify installation
 ./setup_check.py
 
-# View examples
+# View backup examples
 ./examples.sh
+
+# View restore examples
+./restore_examples.sh
 
 # See output options
 ./output_demo.sh
